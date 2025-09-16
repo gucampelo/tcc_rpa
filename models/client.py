@@ -1,9 +1,9 @@
 class Client:
-    def __init__(self, client_id, name, cpf_cnpj, segment, rating):
+    def __init__(self, client_id, name, cpf_cnpj, segmento, rating):
         self.client_id = client_id
         self.name = name
         self.cpf_cnpj = cpf_cnpj
-        self.segment = segment
+        self.segmento = segmento
         self.rating = rating
 
     def __repr__(self):

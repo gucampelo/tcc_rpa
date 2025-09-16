@@ -1,0 +1,51 @@
+[
+{
+"total": 50000,
+"detalhes": [
+{"data": "10/03/26", "principal": 25000},
+{"data": "10/06/26", "principal": 25000}
+]
+},
+{
+"total": 50000,
+"detalhes": [
+{"data": "15/02/26", "principal": 10000},
+{"data": "15/04/26", "principal": 15000},
+{"data": "15/06/26", "principal": 25000}
+]
+},
+{
+"total": 25000,
+"detalhes": [
+{"data": "01/03/26", "principal": 10000},
+{"data": "01/06/26", "principal": 15000}
+]
+},
+{
+"total": 25000,
+"detalhes": [
+{"data": "05/04/26", "principal": 5000},
+{"data": "05/05/26", "principal": 5000},
+{"data": "05/06/26", "principal": 5000},
+{"data": "05/07/26", "principal": 10000}
+]
+},
+{
+"total": 10000000,
+"detalhes": [
+{"data": "10/03/26", "principal": 2500000},
+{"data": "10/06/26", "principal": 2500000},
+{"data": "10/09/26", "principal": 2500000},
+{"data": "10/12/26", "principal": 2500000}
+]
+},
+{
+"total": 10000000,
+"detalhes": [
+{"data": "15/02/26", "principal": 1000000},
+{"data": "15/05/26", "principal": 2000000},
+{"data": "15/08/26", "principal": 3000000},
+{"data": "15/11/26", "principal": 4000000}
+]
+}
+]

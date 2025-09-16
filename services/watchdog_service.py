@@ -18,9 +18,8 @@ class WatchdogHandler(FileSystemEventHandler):
             # dá um tempinho pro arquivo terminar de salvar
             time.sleep(2)
             try:
-                df = pd.read_csv(event.src_path, sep=",")
-                self.data_queue.put(df)
-                print(f"[Watchdog] CSV enviado para fila de processamento ({len(df)} linhas).")
+                self.data_queue.put(event.src_path)
+                print(f"[Watchdog] CSV enviado para fila de processamento ({event.src_path} linhas).")
             except Exception as e:
                 print(f"[Watchdog] Erro ao ler CSV: {e}")
 

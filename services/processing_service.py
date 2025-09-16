@@ -1,81 +1,65 @@
 # services/processing_service.py
+import pandas as pd
+import queue
 import time
+from services.api_service import APIService
+from services.excel_service import ExcelService
 from models.client import Client
 from models.operation import Operation
-from models.rate import Rate
 from models.record import Record
 
 class ProcessingService:
-    def __init__(self, data_queue, api_service, excel_service, sharepoint_service):
-        self.data_queue = data_queue
+    def __init__(self, task_queue: queue.Queue, api_service: APIService, excel_service: ExcelService):
+        self.task_queue = task_queue
         self.api_service = api_service
         self.excel_service = excel_service
-        self.sharepoint_service = sharepoint_service
 
-    def run(self):
-        print("[ProcessingService] Iniciado.")
+    def start(self):
+        print("[PROCESSING] Service started...")
         while True:
-            df = self.data_queue.get()  # bloqueante até ter algo
-            print(f"[ProcessingService] Recebido dataframe ({len(df)} linhas).")
-            
-            for _, row in df.iterrows():
-                try:
-                    # 1. Criar cliente
-                    client = Client(
-                        client_id=row.get("ID_CLIENTE", ""),
-                        name=row.get("CLIENTE", ""),
-                        cpf_cnpj=row.get("CPF_CNPJ", ""),
-                        segment=row.get("SEGMENTO", ""),
-                        rating=row.get("RATING", 0)
-                    )
+            try:
+                # Espera até que um novo arquivo apareça na fila
+                file_path = self.task_queue.get()
+                print(f"[PROCESSING] Novo arquivo recebido: {type(file_path)}")
 
-                    # 2. Criar operação
-                    operation = Operation(
-                        operation_id=row.get("ID", 0),
-                        client=client,
-                        value=row.get("VALOR", 0.0),
-                        term_days=row.get("PRAZO_DIAS", 0),
-                        rate_type=row.get("TIPO_TAXA", ""),
-                        spread_req=row.get("SPREAD_SOLC", 0.0),
-                        cost_req=row.get("CUSTO_SOLC", 0.0),
-                        rate_req=row.get("TAXA_SOLC", None),
-                        spread_locked=row.get("SPREAD_TRV", None),
-                        cost_locked=row.get("CUSTO_TRV", None),
-                        rate_locked=row.get("TAXA_TRV", None),
-                        installment_flow=row.get("FLUXO_PARCELAS", None),
-                        requester=row.get("SOLICITANTE", ""),
-                        requester_email=row.get("EMAIL_SOLC", "")
-                    )
+                # Processa CSV
+                self.process_file(file_path)
 
-                    # 3. Validar cliente
-                    if not self.api_service.validate_client(client):
-                        print(f"[ProcessingService] Cliente inválido: {client.client_id}")
-                        record = Record.from_operation(operation, None)
-                        record.status = "RECUSADO"
-                        record.justification = "Cliente inválido"
-                        self.sharepoint_service._upload_item(record)
-                        continue
+                # Marca como concluído na fila
+                self.task_queue.task_done()
 
-                    # 4. Validar operação
-                    if not self.api_service.validate_operation(operation):
-                        print(f"[ProcessingService] Operação inválida: {operation.operation_id}")
-                        record = Record.from_operation(operation, None)
-                        record.status = "RECUSADO"
-                        record.justification = "Operação inválida"
-                        self.sharepoint_service._upload_item(record)
-                        continue
+            except Exception as e:
+                print(f"[PROCESSING] Erro: {e}")
+                time.sleep(5)  # espera um pouco antes de tentar de novo
 
-                    # 5. Calcular taxa
-                    rate = self.excel_service.calculate_rate(operation)
+    def process_file(self, file_path: str):
+        print(f"[PROCESSING] Lendo arquivo {file_path}...")
+        df = pd.read_csv(file_path)
 
-                    # 6. Criar record e enviar para SharePoint
-                    record = Record.from_operation(operation, rate)
-                    record.status = "APROVADO"
-                    self.sharepoint_service._upload_item(record)
-                    print(f"[ProcessingService] Operação processada: {operation.operation_id}")
+        # Pré-processamento simples
+        df = df.fillna("")  # substitui NaN
 
-                except Exception as e:
-                    print(f"[ProcessingService] Erro ao processar linha: {e}")
+        # Iterar sobre linhas do CSV
+        for _, row in df.iterrows():
+            client = Client(row["ID"], row["CLIENTE"], row["CPF_CNPJ"], row["SEGMENTO"], row["RATING"])
+            operation = Operation(row["ID"], client, row["VALOR"], row["PRAZO_DIAS"], row["TIPO_TAXA"], row["SPREAD_SOLC"], row["CUSTO_SOLC"])
+            record = Record(client, operation)
 
-            self.data_queue.task_done()
-            print("[ProcessingService] Lote processado.\n")
+            print(f"[PROCESSING] Validando operação {operation.operation_id} do cliente {client.name}")
+
+            # Validação via API Flask
+            is_valid, motivo = self.api_service.validate(record)
+
+            if is_valid:
+                print(f"[PROCESSING] Operação {record.operation_id} aprovada! Motivo: {motivo}")
+                # aqui chama o ExcelService para calcular taxa
+            else:
+                print(f"[PROCESSING] Operação {record.operation_id} recusada. Motivo: {motivo}")
+                # aqui você já pode registrar no SharePoint como recusada
+            # Cálculo da taxa via Excel
+            rate = self.excel_service.calculate_rate(operation.amount, client.rating)
+            record.set_rate(rate)
+
+            print(f"[PROCESSING] ✅ Cliente {client.name} - Operação {operation.operation_id} - Taxa {rate}%")
+
+        print("[PROCESSING] Arquivo concluído.")
