@@ -8,9 +8,7 @@ class APIService:
         print(f"[API] Enviando record {record.operation_id} para validação...")
         try:
             payload = {
-                "cliente_id": record.client_id,
                 "operation_id": record.operation_id,
-                "valor": record.value
             }
             resp = requests.post(f"{self.base_url}/validar", json=payload, timeout=5)
             resp.raise_for_status()

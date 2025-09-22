@@ -14,7 +14,7 @@ class RPAHandler:
             if self.api_service.validate(record):
                 # Step 3: calculate rate in Excel
                 rate = self.excel_service.calculate(record)
-                record["final_rate"] = rate
+                record["rate"] = rate
 
                 # Step 4: insert result back to SharePoint
                 self.sharepoint_service.insert_result(record)
