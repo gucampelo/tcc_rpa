@@ -1,20 +1,24 @@
 # services/processing_service.py
-import pandas as pd
-import queue
-import time
+import time, subprocess, pandas as pd
 from services.api_service import APIService
 from services.excel_service import ExcelService
-from services.sharepoint_service import SharePointService
 from models.client import Client
 from models.operation import Operation
 from models.record import Record
 
 class ProcessingService:
-    def __init__(self, task_queue: queue.Queue, api_service: APIService, excel_service: ExcelService, sharepoint_service: SharePointService):
-        self.task_queue = task_queue
-        self.api_service = api_service
-        self.excel_service = excel_service
-        self.sharepoint_service = sharepoint_service
+    def __init__(self, dequeue_method, upload_result):
+        self.dequeue_method = dequeue_method
+        self.upload_result = upload_result
+
+        subprocess.Popen([
+            "libreoffice",
+            "--accept=socket,host=localhost,port=2002;urp;",
+            "--norestore", "--nofirststartwizard", "--nologo"
+        ])
+        time.sleep(3)  # tempo para o LibreOffice iniciar
+        self.excel_service = ExcelService("/home/gucampe/Documentos/TCC/Projeto/masterFunding.xlsx")
+        self.api_service = APIService()
 
     def start(self):
         print("[PROCESSING] Service started...")
@@ -24,7 +28,7 @@ class ProcessingService:
         while True:
             try:
                 # Espera até que um novo arquivo apareça na fila
-                file_path = self.task_queue.get()
+                file_path = self.dequeue_method()
                 print(f"[PROCESSING] Novo arquivo recebido: {file_path}")
 
                 # Processa o CSV
@@ -57,7 +61,7 @@ class ProcessingService:
                 row["CUSTO_SOLC"],
                 row["FLUXO_PARCELAS"]
             )
-            record = Record.from_operation(operation)
+            record = Record(email_solc=row["EMAIL_SOLC"], operation_id=row["ID"], status="PENDENTE", solicitante=row["SOLICITANTE"], rate=None, justification=None )
 
             print(f"[PROCESSING] Validando operação {operation.operation_id} do cliente {client.name}")
 
@@ -86,7 +90,7 @@ class ProcessingService:
                 # Aqui você pode chamar SharePointService para registrar o status
 
             try:
-                self.sharepoint_service._upload_item(client, operation, record)
+                self.upload_result(client, operation, record)
                 print(f"[PROCESSING] Registro enviado para SharePoint: Operação {record.operation_id}")
             except Exception as e:
                 print(f"[PROCESSING] Erro ao enviar para SharePoint: {e}")

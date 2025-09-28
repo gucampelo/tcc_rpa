@@ -7,8 +7,11 @@ class Record:
     Representa a resposta final a ser enviada ao SharePoint.
     """
     def __init__(self, operation_id: int, status: str,
-                 rate=None, justification: str = None):
+                 rate=None, solicitante: str = None, email_solc: str = None, justification: str = None):
         self.__operation_id = operation_id      # ID da operação
+        self.__solicitante = solicitante
+        self.__email_solc = email_solc
+                          
         self.__status = status                  # 'APROVADO', 'RECUSADO', 'ERRO'
         self.__rate = rate                      # instância de Rate ou None
         self.__justification = justification    # motivo de recusa ou erro

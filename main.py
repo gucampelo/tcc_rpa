@@ -1,96 +1,98 @@
-import threading
-import subprocess
-import time
-import queue
-
+import threading, time, queue, settings
 from services.sharepoint_service import SharePointService
 from services.watchdog_service import WatchdogService
 from services.processing_service import ProcessingService
-from services.excel_service import ExcelService
-from services.api_service import APIService
-import settings
 
-# -----------------------------
-# Inicializa LibreOffice headless
-# -----------------------------
-subprocess.Popen([
-    "libreoffice",
-    "--accept=socket,host=localhost,port=2002;urp;",
-    "--norestore", "--nofirststartwizard", "--nologo"
-])
 
-time.sleep(3)  # tempo para o LibreOffice iniciar
+class RPA:
+    def __init__(self):
+        # -----------------------------
+        # Inicializa LibreOffice headless
+        # -----------------------------
+        
 
-# -----------------------------
-# Filas compartilhadas
-# -----------------------------
-data_queue = queue.Queue()       # CSVs baixados para processamento
-driver_lock = threading.Lock()   # lock para sincronizar Selenium
+        # -----------------------------
+        # Filas e lock compartilhados
+        # -----------------------------
+        self.__data_queue = queue.Queue()
+     
 
-# -----------------------------
-# Instância única do SharePoint
-# -----------------------------
-sp_service = SharePointService(
-    download_path=settings.PASTA_DOWNLOAD,
-    url_sharepoint=settings.URL_SHAREPOINT,
-    usuario=settings.USUARIO,
-    senha=settings.SENHA
-)
-sp_service._init_driver()
-sp_service._login()
-
-# -----------------------------
-# Thread: download de CSV do SharePoint
-# -----------------------------
-def start_sharepoint():
-    while True:
-        try:
-            df = sp_service._download_csv()
-            if df is not None:
-                data_queue.put(df)  # envia para processamento
-                print("[SP] CSV baixado e colocado na fila.")
-        except Exception as e:
-            print(f"[SP] Erro ao baixar CSV: {e}")
-        time.sleep(20)
-
-# -----------------------------
-# Thread: observa a pasta de downloads (Watchdog)
-# -----------------------------
-def start_watchdog():
-    wd = WatchdogService(
-        path=settings.PASTA_DOWNLOAD,
-        data_queue=data_queue
-    )
-    wd.run()
-
-# -----------------------------
-# Thread: processa CSVs, calcula taxa e envia ao SharePoint
-# -----------------------------
-def start_processing():
-    excel_service = ExcelService("/home/gucampe/Documentos/TCC/Projeto/masterFunding.xlsx")
-    api_service = APIService()
+        # -----------------------------
+        # Instância única do SharePoint
+        # -----------------------------
+        self.__sharepoint_service = SharePointService(
+            download_path=settings.PASTA_DOWNLOAD,
+            url_sharepoint=settings.URL_SHAREPOINT,
+            usuario=settings.USUARIO,
+            senha=settings.SENHA,
+        )
     
-    proc = ProcessingService(
-        task_queue=data_queue,
-        excel_service=excel_service,
-        api_service=api_service,
-        sharepoint_service=sp_service  # <-- passa a instância compartilhada
-    )
-    proc.start()  # valida dados, roda Excel e grava no SharePoint
+        self.__watchdog_service = WatchdogService(
+            path=settings.PASTA_DOWNLOAD,
+            enqueue_method=self.enqueue,
+        )
+
+        self.__processing_service = ProcessingService(
+            dequeue_method=self.dequeue,
+            upload_result=self.__sharepoint_service.run_upload,
+        )
+
+    # -----------------------------
+    # Thread: download de CSV do SharePoint
+    # -----------------------------
+    @property
+    def data_queue(self):
+        return self.__data_queue
+
+    # Método público para adicionar um item na fila
+    def enqueue(self, item):
+        self.__data_queue.put(item)
+
+    def dequeue(self):
+        return self.__data_queue.get()
+    
+    def start_sharepoint(self):
+        self.__sharepoint_service.connect()
+        while True:
+            try:
+                self.__sharepoint_service.run_download()
+            except Exception as e:
+                print(f"[SP] Erro ao baixar CSV: {e}")
+            time.sleep(20)
+
+    # -----------------------------
+    # Thread: observa a pasta de downloads
+    # -----------------------------
+    def start_watchdog(self):
+        self.__watchdog_service.run()
+
+    # -----------------------------
+    # Thread: processa CSVs, calcula taxa e envia ao SharePoint
+    # -----------------------------
+    def start_processing(self):
+        self.__processing_service.start()
+
+    # -----------------------------
+    # Inicializa as threads
+    # -----------------------------
+    def run(self):
+        threads = [
+            threading.Thread(target=self.start_sharepoint, daemon=True),
+            threading.Thread(target=self.start_watchdog, daemon=True),
+            threading.Thread(target=self.start_processing, daemon=True)
+        ]
+
+        for t in threads:
+            t.start()
+
+        # Mantém o main thread ativo
+        for t in threads:
+            t.join()
+
 
 # -----------------------------
-# Main
+# Entry point
 # -----------------------------
 if __name__ == "__main__":
-    threads = [
-        threading.Thread(target=start_sharepoint, daemon=True),
-        threading.Thread(target=start_watchdog, daemon=True),
-        threading.Thread(target=start_processing, daemon=True)
-    ]
-
-    for t in threads:
-        t.start()
-
-    # Mantém o main thread ativo
-    for t in threads:
-        t.join()
+    rpa = RPA()
+    rpa.run()

@@ -7,9 +7,9 @@ import pandas as pd
 import os
 
 class WatchdogHandler(FileSystemEventHandler):
-    def __init__(self, data_queue):
+    def __init__(self, enqueue_method):
         super().__init__()
-        self.data_queue = data_queue
+        self.enqueue_method = enqueue_method
 
     def on_created(self, event):
         """Dispara quando um novo arquivo é criado"""
@@ -18,19 +18,19 @@ class WatchdogHandler(FileSystemEventHandler):
             # dá um tempinho pro arquivo terminar de salvar
             time.sleep(2)
             try:
-                self.data_queue.put(event.src_path)
+                self.enqueue_method(event.src_path)
                 print(f"[Watchdog] CSV enviado para fila de processamento ({event.src_path} linhas).")
             except Exception as e:
                 print(f"[Watchdog] Erro ao ler CSV: {e}")
 
 class WatchdogService:
-    def __init__(self, path: str, data_queue: queue.Queue):
+    def __init__(self, path: str, enqueue_method):
         self.path = path
-        self.data_queue = data_queue
+        self.enqueue_method = enqueue_method
         self.observer = Observer()
 
     def run(self):
-        event_handler = WatchdogHandler(self.data_queue)
+        event_handler = WatchdogHandler(self.enqueue_method)
         self.observer.schedule(event_handler, self.path, recursive=False)
         self.observer.start()
         print(f"[Watchdog] Observando pasta: {self.path}")

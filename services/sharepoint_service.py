@@ -1,6 +1,5 @@
 # services/sharepoint_service.py
-import time
-import threading
+import time, threading
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -45,25 +44,29 @@ class SharePointService:
             EC.element_to_be_clickable((By.XPATH, '//*[@data-testid="primaryButton"]'))
         ).click()
 
+    def connect(self):
+        self._init_driver()
+        self._login()
+
     def _download_csv(self):
-        with self.lock:
-            time.sleep(5)
-            iframe = self.driver.find_element(By.TAG_NAME, "iframe")
-            self.driver.switch_to.frame(iframe)
-            try:
-                export_btn = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, '//*[@data-automationid="exportListCommand"]'))
-                )
-                export_btn.click()
-                export_csv_btn = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, '//*[@data-automationid="exportListToCSVCommand"]'))
-                )
-                export_csv_btn.click()
-                print("[SP] Exportação iniciada...")
-            except Exception as e:
-                print(f"[SP] Erro ao clicar no botão de exportação: {e}")
-            finally:
-                self.driver.switch_to.default_content()
+    
+        time.sleep(5)
+        iframe = self.driver.find_element(By.TAG_NAME, "iframe")
+        self.driver.switch_to.frame(iframe)
+        try:
+            export_btn = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@data-automationid="exportListCommand"]'))
+            )
+            export_btn.click()
+            export_csv_btn = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@data-automationid="exportListToCSVCommand"]'))
+            )
+            export_csv_btn.click()
+            print("[SP] Exportação iniciada...")
+        except Exception as e:
+            print(f"[SP] Erro ao clicar no botão de exportação: {e}")
+        finally:
+            self.driver.switch_to.default_content()
 
     def _upload_item(self, client, operation, record):
         """
@@ -75,26 +78,50 @@ class SharePointService:
                 iframe = self.driver.find_element(By.TAG_NAME, "iframe")
                 self.driver.switch_to.frame(iframe)
                 # Exemplo: navegar até a lista de criação de item
-                new_item_btn = WebDriverWait(self.driver, 10).until(
+                WebDriverWait(self.driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/div[1]/div/div/span[1]/button[1]'))
-                )
-                new_item_btn.click()
+                ).click()
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="CPF_CNPJ, vazio, editor de campo. "]'))).send_keys(client.cpf_cnpj)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="CLIENTE, vazio, editor de campo. "]'))).send_keys(client.name)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="SEGMENTO, vazio, editor de campo. "]'))).send_keys(client.segmento)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="RATING, vazio, editor de campo. "]'))).send_keys(client.rating)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="EMAIL_SOLC, vazio, editor de campo. "]'))).send_keys('TESTE')
 
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="EMAIL_SOLC, vazio, editor de campo. "]'))).send_keys('TESTE@GMAIL.COM')
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@aria-label="VALOR, vazio, editor de campo. "]'))).send_keys(operation.value)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="PRAZO_DIAS, vazio, editor de campo. "]'))).send_keys(operation.term_days)
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '//*[@aria-label="TIPO_TAXA, vazio, editor de campo. "]'))).send_keys(operation.rate_type)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="CUSTO_SOLC, vazio, editor de campo. "]'))).send_keys(operation.cost)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="SPREAD_SOLC, vazio, editor de campo. "]'))).send_keys(operation.spread)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="TAXA_SOLC, vazio, editor de campo. "]'))).send_keys(record.rate)
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="STATUS, vazio, editor de campo. "]'))).send_keys("Aprovado")
+                
+                WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@data-automationid="ReactClientFormSaveButton"]'))).click()
                
+
             except Exception as e:
                 print(f"[SP] Erro ao registrar item: {e}")
             finally:
                 self.driver.switch_to.default_content()
 
-    def run_download(self, interval: int = 20):
-        self._init_driver()
-        self._login()
-        while True:
-            try:
-                self._download_csv()
-            except Exception as e:
-                print(f"[SP] Erro ao baixar CSV: {e}")
-            time.sleep(interval)
+    def run_download(self):
+        with self.lock:
+            return self._download_csv()
+            
 
     def run_upload(self, data_queue):
         while True:
