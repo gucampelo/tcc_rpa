@@ -17,14 +17,14 @@ class RPA:
         # Instância única do SharePoint
         # -----------------------------
         self.__sharepoint_service = SharePointService(
-            download_path=settings.PASTA_DOWNLOAD,
+            download_path=settings.DOWNLOAD_DIR,
             url_sharepoint=settings.URL_SHAREPOINT,
-            usuario=settings.USUARIO,
-            senha=settings.SENHA,
+            user=settings.USER,
+            password=settings.PASSWORD,
         )
     
         self.__watchdog_service = WatchdogService(
-            path=settings.PASTA_DOWNLOAD,
+            path=settings.DOWNLOAD_DIR,
             enqueue_method=self.enqueue,
         )
 

@@ -50,24 +50,24 @@ class ProcessingService:
         df = pd.read_csv(file_path).fillna("")
 
         for _, row in df.iterrows():
-            client = Client(row["ID"], row["CLIENTE"], row["CPF_CNPJ"], row["SEGMENTO"], row["RATING"])
+            client = Client(row["ID"], row["CLIENTE"], row["CPF_CNPJ"], row["segment"], row["RATING"])
             operation = Operation(
                 row["ID"], client, row["VALOR"], row["PRAZO_DIAS"],
                 row["TIPO_TAXA"], row["SPREAD_SOLC"], row["CUSTO_SOLC"], row['TAXA_SOLC'], row["FLUXO_PARCELAS"]
             )
             record = Record(
                 email_solc=row["EMAIL_SOLC"], operation_id=row["ID"],
-                status="PENDENTE", solicitante=row["SOLICITANTE"],
+                status="PENDENTE", requester=row["requester"],
                 rate=None, justification=None
             )
 
             print(f"[PROCESSING] Validando operação {operation.nrm_po} do cliente {client.name}")
 
             # Validação simulada (substituir futuramente pela chamada real à API)
-            is_valid, motivo = True, "Aprovado para teste"
+            is_valid, status = True, "Aprovado para teste"
 
             if is_valid:
-                print(f"[PROCESSING] Operação {record.operation_id} aprovada. Motivo: {motivo}")
+                print(f"[PROCESSING] Operação {record.operation_id}: Validada")
 
                 self.excel_service.preencher_dados(operation.value, operation.rate_type, operation.parcel_flow)
 
@@ -81,9 +81,9 @@ class ProcessingService:
                 
                 print(f"[PROCESSING] ✅ Cliente {client.name} - Operação {operation.nrm_po} - Taxa {operation.rate_approved * 100}%")
             else:
-                print(f"[PROCESSING] ❌ Operação {record.operation_id} recusada. Motivo: {motivo}")
+                print(f"[PROCESSING] ❌ Operação {record.operation_id}: Rejeitada")
                 record.status = "RECUSADO"
-                record.justification = motivo
+                record.justification = status
 
             try:
                 self.upload_result(client, operation, record)

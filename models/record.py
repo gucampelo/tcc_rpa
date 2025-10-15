@@ -6,10 +6,10 @@ class Record:
     """
     Representa a resposta final a ser enviada ao SharePoint.
     """
-    def __init__(self, operation_id, solicitante, email_solc, status,
+    def __init__(self, operation_id, requester, email_solc, status,
                  rate, justification):
         self.__operation_id = operation_id      # ID da operação
-        self.__solicitante = solicitante
+        self.__requester = requester
         self.__email_solc = email_solc
                           
         self.__status = status                  # 'APROVADO', 'RECUSADO', 'ERRO'                  # instância de Rate ou None
@@ -26,12 +26,12 @@ class Record:
         self.__operation_id = value
 
     @property
-    def solicitante(self):
-        return self.__solicitante
+    def requester(self):
+        return self.__requester
 
-    @solicitante.setter
-    def solicitante(self, value):
-        self.__solicitante = value
+    @requester.setter
+    def requester(self, value):
+        self.__requester = value
 
     @property
     def email_solc(self):

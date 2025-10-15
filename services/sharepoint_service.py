@@ -16,11 +16,11 @@ class SharePointService:
       - Realizar upload (inserção) de resultados.
     """
 
-    def __init__(self, download_path: str, url_sharepoint: str, usuario: str, senha: str):
+    def __init__(self, download_path: str, url_sharepoint: str, user: str, password: str):
         self.download_path = download_path
         self.url_sharepoint = url_sharepoint
-        self.__usuario = usuario
-        self.__senha = senha
+        self.__user = user
+        self.__password = password
         self.__driver = None
         self.__lock = threading.Lock()  # cada instância tem seu lock interno
 
@@ -39,18 +39,18 @@ class SharePointService:
         self.__driver.get(self.url_sharepoint)
         WebDriverWait(self.__driver, 20).until(
             EC.presence_of_element_located((By.ID, "usernameEntry"))
-        ).send_keys(self.__usuario + Keys.ENTER)
+        ).send_keys(self.__user + Keys.ENTER)
 
         WebDriverWait(self.__driver, 20).until(
             EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Outras maneiras de entrar')]"))
         ).click()
         WebDriverWait(self.__driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Use sua senha')]"))
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Use sua password')]"))
         ).click()
 
         WebDriverWait(self.__driver, 20).until(
             EC.presence_of_element_located((By.ID, "passwordEntry"))
-        ).send_keys(self.__senha + Keys.ENTER)
+        ).send_keys(self.__password + Keys.ENTER)
 
         WebDriverWait(self.__driver, 20).until(
             EC.element_to_be_clickable((By.XPATH, '//*[@data-testid="primaryButton"]'))
@@ -122,16 +122,16 @@ class SharePointService:
             ).send_keys(client.name)
 
             WebDriverWait(self.__driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="SEGMENTO, vazio, editor de campo. "]'))
-            ).send_keys(client.segmento)
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="segment, vazio, editor de campo. "]'))
+            ).send_keys(client.segment)
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="RATING, vazio, editor de campo. "]'))
             ).send_keys(client.rating)
 
             WebDriverWait(self.__driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="SOLICITANTE, vazio, editor de campo. "]'))
-            ).send_keys(record.solicitante)
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="requester, vazio, editor de campo. "]'))
+            ).send_keys(record.requester)
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="EMAIL_SOLC, vazio, editor de campo. "]'))
