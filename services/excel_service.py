@@ -1,4 +1,4 @@
-import uno  # type: ignore
+import uno # type: ignore
 import subprocess
 import time
 import socket
@@ -6,88 +6,95 @@ import json
 
 
 class ExcelService:
-    def __init__(self, filepath, host="localhost", port=2002):
-        self.filepath = filepath
-        self.desktop = None
-        self.doc = None
-        self.host = host
-        self.port = port
+    
+    def __init__(self, filepath: str, host: str = "localhost", port: int = 2002):
+        self.__filepath = filepath
+        self.__host = host
+        self.__port = port
+        self.__desktop = None
+        self.__doc = None
 
-    def _is_port_open(self):
+    # -----------------------------
+    # Métodos internos
+    # -----------------------------
+    def __is_port_open(self) -> bool:
         """Verifica se a porta do LibreOffice está aberta"""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(1)
-            return sock.connect_ex((self.host, self.port)) == 0
+            return sock.connect_ex((self.__host, self.__port)) == 0
 
-    def _start_libreoffice(self):
-        """Inicia o LibreOffice headless se não estiver rodando"""
+    def __start_libreoffice(self):
+        """Inicia o LibreOffice em modo headless"""
+        print("[EXCEL] Iniciando LibreOffice em modo headless...")
         subprocess.Popen([
             "libreoffice",
-            f'--accept=socket,host={self.host},port={self.port};urp;',
+            f'--accept=socket,host={self.__host},port={self.__port};urp;',
             "--norestore", "--nofirststartwizard", "--nologo"
         ])
-        # Dá um tempo para iniciar
         time.sleep(3)
 
+    def __executar_macro_interna(self, macro_name: str):
+        """Executa uma macro dentro do arquivo"""
+        script_provider = self.__doc.getScriptProvider()
+        script = script_provider.getScript(
+            f"vnd.sun.star.script:Standard.Module1.{macro_name}?language=Basic&location=application"
+        )
+        script.invoke((), (), ())
+
+    # -----------------------------
+    # Interface pública
+    # -----------------------------
     def connect(self):
-        """Conecta ao LibreOffice, iniciando se necessário"""
-        if not self._is_port_open():
-            print("🔄 LibreOffice não está rodando. Iniciando em modo headless...")
-            self._start_libreoffice()
+        """Conecta ao LibreOffice e carrega a planilha"""
+        if not self.__is_port_open():
+            self.__start_libreoffice()
 
-        local_ctx = uno.getComponentContext()
-        resolver = local_ctx.ServiceManager.createInstanceWithContext(
-            "com.sun.star.bridge.UnoUrlResolver", local_ctx
-        )
-        ctx = resolver.resolve(
-            f"uno:socket,host={self.host},port={self.port};urp;StarOffice.ComponentContext"
-        )
-        smgr = ctx.ServiceManager
-        self.desktop = smgr.createInstanceWithContext("com.sun.star.frame.Desktop", ctx)
-        url = uno.systemPathToFileUrl(self.filepath)
-        self.doc = self.desktop.loadComponentFromURL(url, "_blank", 0, ())
-        print("✅ Conectado ao LibreOffice e planilha carregada.")
+        try:
+            local_ctx = uno.getComponentContext()
+            resolver = local_ctx.ServiceManager.createInstanceWithContext(
+                "com.sun.star.bridge.UnoUrlResolver", local_ctx
+            )
+            ctx = resolver.resolve(
+                f"uno:socket,host={self.__host},port={self.__port};urp;StarOffice.ComponentContext"
+            )
+            smgr = ctx.ServiceManager
+            self.__desktop = smgr.createInstanceWithContext("com.sun.star.frame.Desktop", ctx)
+            url = uno.systemPathToFileUrl(self.__filepath)
+            self.__doc = self.__desktop.loadComponentFromURL(url, "_blank", 0, ())
+            print("[EXCEL] Conectado e planilha carregada com sucesso.")
+        except Exception as e:
+            print(f"[EXCEL] Erro ao conectar ao LibreOffice: {e}")
 
-    def preencher_dados(self, valor, tipo_taxa, parcelas):
-        """
-        Preenche os dados básicos na planilha:
-        valor: número
-        tipo_taxa: string ("Pré-Fixada" ou "Pós-Fixada")
-        parcelas: lista de dicts [{data: "2026-10-10", principal: 250000}, ...]
-        """
-        plan = self.doc.Sheets.getByIndex(0)
-
-        # Preenche valor (C4) e tipo de taxa (F3)
+    def preencher_dados(self, valor, tipo_taxa, parcelas_json: str):
+        """Preenche os campos de entrada no Excel"""
+        plan = self.__doc.Sheets.getByIndex(0)
         plan.getCellRangeByName("C4").Value = valor
         plan.getCellRangeByName("F3").String = tipo_taxa
 
-        # Limpa parcelas antigas
+        # Limpa linhas anteriores
         for i in range(12, 50):
-            plan.getCellByPosition(1, i).String = ""  # coluna C (datas)
-            plan.getCellByPosition(2, i).Value = ""   # coluna D (principal)
+            plan.getCellByPosition(1, i).String = ""
+            plan.getCellByPosition(2, i).Value = ""
 
-        # Preenche parcelas a partir da linha 12
-        row = 12  # índice zero-bparcelaased (linha 12 = 11)
-        parcelas = json.loads(parcelas.replace("\n", "").strip())
-        
+        parcelas = json.loads(parcelas_json.replace("\n", "").strip())
+        row = 12
         for parcela in parcelas:
             plan.getCellByPosition(1, row).String = parcela["data"]
             plan.getCellByPosition(2, row).Value = parcela["valor"]
             row += 1
 
-    def rodar_macro(self, macro_name):
-        plan = self.doc.Sheets.getByIndex(0)
-
-        """Executa uma macro existente dentro do arquivo"""
-        script_provider = self.doc.getScriptProvider()
-        script = script_provider.getScript(
-            f"vnd.sun.star.script:Standard.Module1.{macro_name}?language=Basic&location=application"
-        )
-        script.invoke((), (), ())
-        return plan.getCellByPosition(5, 3).Value # rate
+    def rodar_macro(self) -> float:
+        """Executa macro e retorna taxa gerada"""
+        self.__executar_macro_interna("GerarDecimal")
+        plan = self.__doc.Sheets.getByIndex(0)
+        taxa = plan.getCellByPosition(5, 3).Value
+        print(f"[EXCEL] Taxa gerada: {taxa}%")
+        return taxa
 
     def salvar(self):
-        self.doc.store()
+        """Salva alterações"""
+        self.__doc.store()
 
     def fechar(self):
-        self.doc.close(True)
+        """Fecha o arquivo"""
+        self.__doc.close(True)

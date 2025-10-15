@@ -6,13 +6,9 @@ from services.processing_service import ProcessingService
 
 class RPA:
     def __init__(self):
-        # -----------------------------
-        # Inicializa LibreOffice headless
-        # -----------------------------
         
-
         # -----------------------------
-        # Filas e lock compartilhados
+        # Fila
         # -----------------------------
         self.__data_queue = queue.Queue()
      
@@ -34,7 +30,7 @@ class RPA:
 
         self.__processing_service = ProcessingService(
             dequeue_method=self.dequeue,
-            upload_result=self.__sharepoint_service.run_upload,
+            upload_result=self.__sharepoint_service.upload_item,
         )
 
     # -----------------------------
@@ -55,7 +51,7 @@ class RPA:
         self.__sharepoint_service.connect()
         while True:
             try:
-                self.__sharepoint_service.run_download()
+                self.__sharepoint_service.download_csv()
             except Exception as e:
                 print(f"[SP] Erro ao baixar CSV: {e}")
             time.sleep(20)
