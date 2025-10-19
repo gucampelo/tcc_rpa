@@ -10,7 +10,7 @@ class RPA:
         # -----------------------------
         # Fila
         # -----------------------------
-        self.__data_queue = queue.Queue()
+        self.__data_queue = queue.LifoQueue()
      
 
         # -----------------------------

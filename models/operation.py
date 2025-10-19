@@ -1,7 +1,7 @@
 class Operation:
-    def __init__(self, nrm_po, client, value, term_days, rate_type, spread_requested,
+    def __init__(self, nmr_po, client, value, term_days, rate_type, spread_requested,
                   cost_requested, rate_requested, parcel_flow):
-        self.__nrm_po = nrm_po
+        self.__nmr_po = nmr_po
         self.__client = client
         self.__value = value
         self.__term_days = term_days
@@ -22,8 +22,8 @@ class Operation:
     # Getters e Setters (encapsulamento)
     # -----------------------------
     @property
-    def nrm_po(self):
-        return self.__nrm_po
+    def nmr_po(self):
+        return self.__nmr_po
 
     @property
     def client(self):
@@ -137,4 +137,4 @@ class Operation:
     # Representação textual
     # -----------------------------
     def __repr__(self):
-        return f"<Operation {self.__nrm_po} - Value: {self.__value}>"
+        return f"<Operation {self.__nmr_po} - Value: {self.__value}>"

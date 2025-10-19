@@ -28,11 +28,32 @@ class SharePointService:
     # Inicialização e login
     # -----------------------------
     def __init_driver(self):
+        """Inicializa o driver do Selenium com preferências de download."""
         options = webdriver.ChromeOptions()
-        prefs = {"download.default_directory": self.download_path}
+
+        prefs = {
+            # Define o diretório padrão de download
+            "download.default_directory": self.download_path,
+            # Impede qualquer popup de confirmação
+            "download.prompt_for_download": False,
+            # Permite atualização automática do diretório
+            "download.directory_upgrade": True,
+            # Permite múltiplos downloads automáticos (evita popup)
+            "profile.default_content_setting_values.automatic_downloads": 1,
+            # Segurança e performance
+            "safebrowsing.enabled": True,
+            "safebrowsing.disable_download_protection": True
+        }
+
         options.add_experimental_option("prefs", prefs)
         options.add_argument("--start-maximized")
+        options.add_argument("--disable-notifications")
+        options.add_argument("--disable-infobars")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
         self.__driver = webdriver.Chrome(options=options)
+
 
     def __login(self):
         """Executa login automatizado no SharePoint."""
@@ -45,7 +66,7 @@ class SharePointService:
             EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Outras maneiras de entrar')]"))
         ).click()
         WebDriverWait(self.__driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Use sua password')]"))
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Use sua senha')]"))
         ).click()
 
         WebDriverWait(self.__driver, 20).until(
@@ -111,8 +132,8 @@ class SharePointService:
 
             # Campos
             WebDriverWait(self.__driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="NRM_PO, vazio, editor de campo. "]'))
-            ).send_keys(operation.nrm_po)
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="NMR_PO, vazio, editor de campo. "]'))
+            ).send_keys(operation.nmr_po)
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="CPF_CNPJ, vazio, editor de campo. "]'))
             ).send_keys(client.cpf_cnpj)
@@ -122,7 +143,7 @@ class SharePointService:
             ).send_keys(client.name)
 
             WebDriverWait(self.__driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="segment, vazio, editor de campo. "]'))
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="SEGMENTO, vazio, editor de campo. "]'))
             ).send_keys(client.segment)
 
             WebDriverWait(self.__driver, 10).until(
@@ -130,7 +151,7 @@ class SharePointService:
             ).send_keys(client.rating)
 
             WebDriverWait(self.__driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="requester, vazio, editor de campo. "]'))
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="SOLICITANTE, vazio, editor de campo. "]'))
             ).send_keys(record.requester)
 
             WebDriverWait(self.__driver, 10).until(
