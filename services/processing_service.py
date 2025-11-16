@@ -59,13 +59,16 @@ class ProcessingService:
 
 
         for _, row in df_pending.iterrows():
-            client = Client(row["ID"], row["CLIENTE"], row["CPF_CNPJ"], row["SEGMENTO"], row["RATING"])
+            client = Client(nmr_po = row["nmr_po"], client= row["CLIENTE"], 
+                cpf_cnpj=row["CPF_CNPJ"], segment=row["SEGMENTO"], rating=row["RATING"])
             operation = Operation(
-                row["ID"], client, row["VALOR"], row["PRAZO_DIAS"],
-                row["TIPO_TAXA"], row["SPREAD_SOLC"], row["CUSTO_SOLC"], row['TAXA_SOLC'], row["FLUXO_PARCELAS"]
+                id = row["ID"],client = client, product=row['PRODUTO'],operation_type=row['TIPO_OPERACAO'], 
+                value=row["VALOR"], guarantee=row['GARANTIA'], guarantee_percentage=row['PORCEN_GARANTIA'],
+                term_days=row["PRAZO_DIAS"], rate_type=row["TIPO_TAXA"], spread_requested=row["SPREAD_SOLC"], cost_requested=row["CUSTO_SOLC"], 
+                rate_requested=row['TAXA_SOLC'], parcel_flow=row["FLUXO_PARCELAS"]
             )
             record = Record(
-                email_solc=row["EMAIL_SOLC"], operation_id=row["ID"],
+                email_solc=row["EMAIL_SOLC"], nmr_po=row["NMR_PO"],
                 status="PENDENTE", requester=row["SOLICITANTE"],
                 rate=None, justification=None
             )
@@ -73,7 +76,7 @@ class ProcessingService:
             print(f"[PROCESSING] Validando operação {operation.nmr_po} do cliente {client.name}")
 
             # Validação simulada (substituir futuramente pela chamada real à API)
-            is_valid, status = True, "Aprovado para teste"
+            is_valid, status = self.api_service.get_client(client, operation)
 
             if is_valid:
                 print(f"[PROCESSING] Operação {operation.nmr_po}: Validada")
