@@ -1,5 +1,6 @@
 class Client:
-    def __init__(self, client_id, name, cpf_cnpj, segment, rating):
+    def __init__(self, nmr_po, name, cpf_cnpj, segment, rating):
+        self.nmr_po = nmr_po
         self.name = name
         self.cpf_cnpj = cpf_cnpj
         self.segment = segment

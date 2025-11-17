@@ -1,10 +1,11 @@
 import time
 import pandas as pd
-from services.api_service import APIService
+from services.validate_service import ValidateService
 from services.excel_service import ExcelService
 from models.client import Client
 from models.operation import Operation
 from models.record import Record
+import settings
 
 class ProcessingService:
     def __init__(self, dequeue_method, upload_result, excel_process=None):
@@ -21,10 +22,10 @@ class ProcessingService:
         self.dequeue_method = dequeue_method
         self.upload_result = upload_result
         self.excel_process = excel_process
-        self.api_service = APIService()
+        self.validate_service = ValidateService()
 
         # Conecta à planilha
-        self.excel_service = ExcelService("/home/gucampe/Documentos/TCC/Projeto/masterFunding.xlsx")
+        self.excel_service = ExcelService(settings.EXCEL_FILE)
         print("[PROCESSING] Serviço inicializado.")
 
     def start(self):
@@ -59,25 +60,24 @@ class ProcessingService:
 
 
         for _, row in df_pending.iterrows():
-            client = Client(nmr_po = row["nmr_po"], client= row["CLIENTE"], 
+            client = Client(nmr_po = row["NMR_PO"], name= row["CLIENTE"], 
                 cpf_cnpj=row["CPF_CNPJ"], segment=row["SEGMENTO"], rating=row["RATING"])
             operation = Operation(
-                id = row["ID"],client = client, product=row['PRODUTO'],operation_type=row['TIPO_OPERACAO'], 
+                nmr_po = row["NMR_PO"],client = client, product=row['PRODUTO'],operation_type=row['TIPO_OPERACAO'], 
                 value=row["VALOR"], guarantee=row['GARANTIA'], guarantee_percentage=row['PORCEN_GARANTIA'],
-                term_days=row["PRAZO_DIAS"], rate_type=row["TIPO_TAXA"], spread_requested=row["SPREAD_SOLC"], cost_requested=row["CUSTO_SOLC"], 
-                rate_requested=row['TAXA_SOLC'], parcel_flow=row["FLUXO_PARCELAS"]
+                term_days=row["PRAZO_DIAS"], rate_type=row["TIPO_TAXA"], spread_requested=row["SPREAD_SOLC"], cost_requested=row["CUSTO_SOLC"], rate_requested=row['TAXA_SOLC'], parcel_flow=row["FLUXO_PARCELAS"], trade_defense=row["DEFESA_COMERCIAL"]
             )
             record = Record(
                 email_solc=row["EMAIL_SOLC"], nmr_po=row["NMR_PO"],
-                status="PENDENTE", requester=row["SOLICITANTE"],
-                rate=None, justification=None
+                status="PENDENTE", requester=row["SOLICITANTE"],justification=None
             )
 
             print(f"[PROCESSING] Validando operação {operation.nmr_po} do cliente {client.name}")
 
             # Validação simulada (substituir futuramente pela chamada real à API)
-            is_valid, status = self.api_service.get_client(client, operation)
-
+            response = self.validate_service.validate_operation(client, operation)
+            is_valid, status = response["valido"], response["motivo"]
+            
             if is_valid:
                 print(f"[PROCESSING] Operação {operation.nmr_po}: Validada")
 
@@ -90,16 +90,16 @@ class ProcessingService:
                     record.status = "APROVADO COM ALTERAÇÃO"
                 else:
                     record.status = "APROVADO"
-                
+                record.justification = status
                 print(f"[PROCESSING] ✅ Cliente {client.name} - Operação {operation.nmr_po} - Taxa {operation.rate_approved * 100}%")
             else:
-                print(f"[PROCESSING] ❌ Operação {record.operation_id}: Rejeitada")
+                print(f"[PROCESSING] ❌ Operação {record.nmr_po}: Rejeitada")
                 record.status = "RECUSADO"
                 record.justification = status
 
             try:
                 self.upload_result(client, operation, record)
-                print(f"[PROCESSING] Resultado enviado para SharePoint: {record.operation_id}")
+                print(f"[PROCESSING] Resultado enviado para SharePoint: {record.nmr_po} - {record.status}")
             except Exception as e:
                 print(f"[PROCESSING] Erro ao enviar para SharePoint: {e}")
 

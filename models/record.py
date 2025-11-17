@@ -7,13 +7,13 @@ class Record:
     Representa a resposta final a ser enviada ao SharePoint.
     """
     def __init__(self, nmr_po, requester, email_solc, status,
-                 rate, justification):
+                 justification):
         self.__nmr_po = nmr_po      # ID da operação
         self.__requester = requester
         self.__email_solc = email_solc
                           
-        self.__status = status                  # 'APROVADO', 'RECUSADO', 'ERRO'                  # instância de Rate ou None
-        self.__justification = justification    # motivo de recusa ou erro
+        self.__status = status                     
+        self.__justification = justification 
         self.__processed_at = datetime.now()
         self.__processed_by = "RPA"
 
@@ -49,13 +49,7 @@ class Record:
     def status(self, value):
         self.__status = value
 
-    @property
-    def rate(self):
-        return self.__rate
 
-    @rate.setter
-    def rate(self, value):
-        self.__rate = value
 
     @property
     def justification(self):
@@ -83,19 +77,4 @@ class Record:
 
     # ...restante da classe...
 
-    @classmethod
-    def from_operation(cls, operation, rate=None):
-        """
-        Cria um Record a partir de uma operação e uma Rate calculada (opcional).
-        """
-        return cls(
-            nmr_po=operation.nmr_po,
-            status="PENDENTE",
-            rate=rate,
-            justification=None
-        )
 
-    def __repr__(self):
-        rate_value = self.rate.value if self.rate else None
-        return (f"<Record nmr_po={self.nmr_po}, "
-                f"status={self.status}, rate={rate_value}>")

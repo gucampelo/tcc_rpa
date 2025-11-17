@@ -127,10 +127,10 @@ class SharePointService:
         try:
             # Botão Novo
             WebDriverWait(self.__driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/div[1]/div/div/span[1]/button[1]'))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-automationid="newCommand"]'))
             ).click()
 
-            # Campos
+            
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="NMR_PO, vazio, editor de campo. "]'))
             ).send_keys(operation.nmr_po)
@@ -184,15 +184,14 @@ class SharePointService:
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="TAXA_TRV, vazio, editor de campo. "]'))
-            ).send_keys(operation.rate_approved)
-
+            ).send_keys(operation.rate_approved if operation.rate_approved is not None else "")
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="CUSTO_TRV, vazio, editor de campo. "]'))
-            ).send_keys(operation.cost_approved)
+            ).send_keys(operation.cost_approved if operation.cost_approved is not None else "")
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="SPREAD_TRV, vazio, editor de campo. "]'))
-            ).send_keys(operation.spread_approved)
+            ).send_keys(operation.spread_approved if operation.spread_approved is not None else "")
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="FLUXO_PARCELAS, vazio, editor de campo. "]'))
@@ -200,11 +199,38 @@ class SharePointService:
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="STATUS, vazio, editor de campo. "]'))
-            ).send_keys("Aprovado")
+            ).send_keys(record.status)
+
+            WebDriverWait(self.__driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="PRODUTO, vazio, editor de campo. "]'))
+            ).send_keys(operation.product)
+
+            WebDriverWait(self.__driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="TIPO_OPERACAO, vazio, editor de campo. "]'))
+            ).send_keys(operation.operation_type)
+
+            WebDriverWait(self.__driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="GARANTIA, vazio, editor de campo. "]'))
+            ).send_keys(operation.guarantee)
+
+            WebDriverWait(self.__driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="PORCEN_GARANTIA, vazio, editor de campo. "]'))
+            ).send_keys(operation.guarantee_percentage / 100)
+
+            WebDriverWait(self.__driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="DEFESA_COMERCIAL, vazio, editor de campo. "]'))
+            ).send_keys(operation.trade_defense)
+
+            WebDriverWait(self.__driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="RESPOSTA_PRICING, vazio, editor de campo. "]'))
+            ).send_keys(record.justification)
+
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@data-automationid="ReactClientFormSaveButton"]'))
             ).click()
+
+
 
             print(f"[SP] Item enviado: {client.name} / {operation.value}")
         except Exception as e:

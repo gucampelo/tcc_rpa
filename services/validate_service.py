@@ -1,76 +1,79 @@
 from services.api_service import APIService
 
 class ValidateService:
-    def __init__(self, api_service: APIService):
-        self.__api_service = api_service
+    def __init__(self):
+        self.__api_service = APIService()
 
     def validate_operation(self, client, operation) -> dict:
         """
         Executa a validação completa:
-        - chama a API externa
-        - aplica regras adicionais (rating, status etc.)
+        1. Consulta a API externa para obter dados do cliente
+        2. Aplica regras internas de negócio
         """
 
-        resposta = self.__api_service.validar_cliente(cliente.cpf_cnpj)
+        # 1) Chama a API para buscar informações do cliente
+        resposta = self.__api_service.get_client({"cpf_cnpj": client.cpf_cnpj})
 
         if "erro" in resposta:
-            return resposta  # problema de comunicação
+            return {
+                    "valido": False,
+                    "motivo": "Erro ao acessar a API de clientes"
+                } 
 
         if not resposta.get("valido", False):
             return {
                 "valido": False,
-                "motivo": "Cliente não encontrado ou inválido"
+                "motivo": "Cliente não encontrado."
             }
 
-        cliente = resposta.get("cliente")
+        # DADOS DO CLIENTE VINDOS DA API
+        cliente_api = resposta.get("cliente")
 
-        # ---- Regras de Negócio Internas ----
-        if cliente["status"].lower() != "ativo":
+        # -------- Regras de Negócio Internas -------- #
+
+        # Regra 1: cliente ativo
+        if cliente_api["status"].lower() != "ativo":
             return {
                 "valido": False,
-                "motivo": "Cliente inativo"
+                "motivo": "Cliente inativo."
             }
 
-        if cliente["rating"] < 6 and operation.operation_type == "NOVO":
+        # Regra 2: rating mínimo para operação NOVA
+        if cliente_api["rating"] < 6 and operation.operation_type == "NOVO":
             return {
                 "valido": False,
-                "motivo": "Cliente inelegível devido ao rating e tipo de operação indequados"
+                "motivo": "Cliente inelegível devido ao rating insuficiente."
             }
-        
-        if cliente.segment == "Especial" and operation.value > 1000000:
+
+        # Regra 3: limites por segmento
+        segmento = cliente_api["segmento"]
+
+        limites = {
+            "Especial": 1_000_000,
+            "E1": 10_000_000,
+            "E2": 30_000_000,
+            "E3": 50_000_000,
+            "Agro": 100_000_000
+        }
+
+        if operation.value > limites[segmento]:
             return {
                 "valido": False,
-                "motivo": "Valor da operação incompatível com o segmento"
+                "motivo": "Valor da operação incompatível com o segmento do cliente."
             }
-        
-        if cliente.segment == "E1" and operation.value > 10000000:
-            return {
-                "valido": False,
-                "motivo": "Valor da operação incompatível com o segmento"
-            }
-        
-        if cliente.segment == "E2" and operation.value > 30000000:
-            return {
-                "valido": False,
-                "motivo": "Valor da operação incompatível com o segmento"
-            }
-        
-        if cliente.segment == "E3" and operation.value > 50000000:
-            return {
-                "valido": False,
-                "motivo": "Valor da operação incompatível com o segmento"
-            }
-        
+
+        # Regra 4: spread mínimo
         if operation.spread_requested < 0.02:
             return {
                 "valido": False,
-                "motivo": "Spread solicitado abaixo do mínimo aceitável (2%)"
+                "motivo": "Spread solicitado abaixo do mínimo aceitável (2%)."
             }
-        
-        if operation.guarantee_percentage < 0.2:
+
+        # Regra 5: garantia mínima
+        if operation.guarantee_percentage < 0.20:
             return {
                 "valido": False,
-                "motivo": "Porcentagem de garantia abaixo do mínimo aceitável (20%)"
+                "motivo": "Garantia abaixo do mínimo exigido (20%)."
             }
 
         return {

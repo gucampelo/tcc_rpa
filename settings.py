@@ -2,5 +2,5 @@ URL_SHAREPOINT = "https://lists.live.com/?listId=7ada20375098419b862927b8d97b312
 USER = "campelogustavo11@gmail.com"
 PASSWORD = "Abacate135@"
 DOWNLOAD_DIR = "/home/gucampe/Documentos/base_csv"
-EXCEL_FILE = "/home/gucampe/Documentos/TCC/Projeto/resources/sistema_excel.ods"
+EXCEL_FILE = "/home/gucampe/Documentos/TCC/Projeto/masterFunding.xlsx"
 API_URL = "http://localhost:5000/api"
