@@ -14,7 +14,7 @@ class WatchdogHandler(FileSystemEventHandler):
     def on_created(self, event):
         """Dispara quando um novo arquivo é criado"""
         if not event.is_directory and event.src_path.endswith(".csv"):
-            print(f"[Watchdog] Novo CSV detectado: {event.src_path}")
+            #print(f"[Watchdog] Novo CSV detectado: {event.src_path}")
             # dá um tempinho pro arquivo terminar de salvar
             time.sleep(2)
             try:

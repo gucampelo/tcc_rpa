@@ -16,9 +16,9 @@ class ValidateService:
 
         if "erro" in resposta:
             return {
-                    "valido": False,
-                    "motivo": "Erro ao acessar a API de clientes"
-                } 
+                "valido": False,
+                "motivo": "Erro ao acessar a API de clientes"
+            } 
 
         if not resposta.get("valido", False):
             return {
@@ -32,21 +32,21 @@ class ValidateService:
         # -------- Regras de Negócio Internas -------- #
 
         # Regra 1: cliente ativo
-        if cliente_api["status"].lower() != "ativo":
+        if cliente_api.get("status", "").lower() != "ativo":
             return {
                 "valido": False,
                 "motivo": "Cliente inativo."
             }
 
         # Regra 2: rating mínimo para operação NOVA
-        if cliente_api["rating"] < 6 and operation.operation_type == "NOVO":
+        if cliente_api.get("rating", 0) < 6 and operation.operation_type == "NOVO":
             return {
                 "valido": False,
                 "motivo": "Cliente inelegível devido ao rating insuficiente."
             }
 
-        # Regra 3: limites por segmento
-        segmento = cliente_api["segmento"]
+        # Regra 3: limites por segmento (robusta)
+        segmento = cliente_api.get("segmento")
 
         limites = {
             "Especial": 1_000_000,
@@ -56,11 +56,30 @@ class ValidateService:
             "Agro": 100_000_000
         }
 
-        if operation.value > limites[segmento]:
+        # Valida se segmento existe e é permitido
+        if segmento not in limites:
             return {
                 "valido": False,
-                "motivo": "Valor da operação incompatível com o segmento do cliente."
+                "motivo": f"Segmento '{segmento}' inválido ou não informado."
             }
+
+        # Agora já é seguro usar o dicionário
+        # Garante que o valor é numérico
+        try:
+            value = float(str(operation.value).replace(".", "").replace(',',''))
+        except (ValueError, TypeError):
+            return {
+            "valido": False,
+            "motivo": f"Valor da operação inválido: {operation.value}"
+        }
+
+    # Agora pode comparar sem erro
+        if value > limites[segmento]:
+            return {
+            "valido": False,
+            "motivo": "Valor da operação incompatível com o segmento do cliente."
+        }
+
 
         # Regra 4: spread mínimo
         if operation.spread_requested < 0.02:

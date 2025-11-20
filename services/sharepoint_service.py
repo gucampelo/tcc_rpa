@@ -237,6 +237,7 @@ class SharePointService:
             print(f"[SP] Erro ao registrar item: {e}")
         finally:
             self.__driver.switch_to.default_content()
+            time.sleep(10)
 
     def upload_item(self, client, operation, record):
         """Método público chamado pelo ProcessingService."""
