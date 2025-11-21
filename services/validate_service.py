@@ -4,6 +4,19 @@ class ValidateService:
     def __init__(self):
         self.__api_service = APIService()
 
+    # -------------------------------------------------------------
+    # NOVO MÉTODO → responsável apenas por acessar a API
+    # -------------------------------------------------------------
+    def get_client_api(self, cpf_cnpj: str) -> dict:
+        """
+        Encapsula a chamada à API externa.
+        Retorna exatamente o dicionário fornecido pela API.
+        """
+        return self.__api_service.get_client({"cpf_cnpj": cpf_cnpj})
+
+    # -------------------------------------------------------------
+    # Método principal de validação
+    # -------------------------------------------------------------
     def validate_operation(self, client, operation) -> dict:
         """
         Executa a validação completa:
@@ -12,13 +25,13 @@ class ValidateService:
         """
 
         # 1) Chama a API para buscar informações do cliente
-        resposta = self.__api_service.get_client({"cpf_cnpj": client.cpf_cnpj})
+        resposta = self.get_client_api(client.cpf_cnpj)
 
         if "erro" in resposta:
             return {
                 "valido": False,
                 "motivo": "Erro ao acessar a API de clientes"
-            } 
+            }
 
         if not resposta.get("valido", False):
             return {
@@ -45,7 +58,7 @@ class ValidateService:
                 "motivo": "Cliente inelegível devido ao rating insuficiente."
             }
 
-        # Regra 3: limites por segmento (robusta)
+        # Regra 3: limites por segmento
         segmento = cliente_api.get("segmento")
 
         limites = {
@@ -56,30 +69,28 @@ class ValidateService:
             "Agro": 100_000_000
         }
 
-        # Valida se segmento existe e é permitido
+        # Segmento deve existir
         if segmento not in limites:
             return {
                 "valido": False,
                 "motivo": f"Segmento '{segmento}' inválido ou não informado."
             }
 
-        # Agora já é seguro usar o dicionário
-        # Garante que o valor é numérico
+        # Converte valor da operação para float, robusto
         try:
-            value = float(str(operation.value).replace(".", "").replace(',',''))
+            value = float(str(operation.value).replace(".", "").replace(",", ""))
         except (ValueError, TypeError):
             return {
-            "valido": False,
-            "motivo": f"Valor da operação inválido: {operation.value}"
-        }
+                "valido": False,
+                "motivo": f"Valor da operação inválido: {operation.value}"
+            }
 
-    # Agora pode comparar sem erro
+        # Compara com o limite do segmento
         if value > limites[segmento]:
             return {
-            "valido": False,
-            "motivo": "Valor da operação incompatível com o segmento do cliente."
-        }
-
+                "valido": False,
+                "motivo": "Valor da operação incompatível com o segmento do cliente."
+            }
 
         # Regra 4: spread mínimo
         if operation.spread_requested < 0.02:

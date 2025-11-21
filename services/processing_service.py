@@ -119,7 +119,7 @@ class ProcessingService:
 
             # Criar modelo Record
             record = Record(
-                email_solc=row["EMAIL_SOLC"],
+                email_requester=row["email_requester"],
                 nmr_po=row["NMR_PO"],
                 status="PENDENTE",
                 requester=row["SOLICITANTE"],
@@ -134,10 +134,10 @@ class ProcessingService:
             if is_valid:
                 print(f"[PROCESSING] Operação {operation.nmr_po}: Validada")
 
-                self.excel_service.preencher_dados(
+                cost_approved = round(self.excel_service.run(
                     operation.value, operation.rate_type, operation.parcel_flow
-                )
-                cost_approved = round(self.excel_service.rodar_macro(), 4)
+                ), 4)
+
                 operation.calculate_rate(cost_approved)
 
                 if cost_approved != operation.cost_requested:
@@ -156,15 +156,17 @@ class ProcessingService:
 
             try:
                 # Envia resultado ao SharePoint
-                self.upload_result(client, operation, record)
+                response = self.upload_result(client, operation, record)
+                if not response:
+                    raise Exception("Falha ao enviar resultado ao SharePoint.")
+                else:
+                    # Marca como processada
+                    self.processed_ids.add(record_id)
+                    self.save_cache()
 
-                # Marca como processada
-                self.processed_ids.add(record_id)
-                self.save_cache()
-
-                print(f"[PROCESSING] Resultado enviado e cache atualizado para ID {record_id}")
+                    print(f"[PROCESSING] Resultado enviado e cache atualizado para ID {record_id}")
 
             except Exception as e:
-                print(f"[PROCESSING] Erro ao enviar ao SharePoint: {e}")
+                print(f"[PROCESSING] Erro ao enviar ao SharePoint_Service: {e}")
 
         print("[PROCESSING] Arquivo concluído.")

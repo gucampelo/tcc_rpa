@@ -90,6 +90,11 @@ class ExcelService:
         taxa = plan.getCellByPosition(5, 3).Value
         print(f"[EXCEL] Taxa gerada: {taxa}%")
         return taxa
+    
+
+    def run(self, valor, tipo_taxa, parcelas_json: str):
+        self.preencher_dados(valor, tipo_taxa, parcelas_json)
+        return self.rodar_macro()
 
     def salvar(self):
         """Salva alterações"""

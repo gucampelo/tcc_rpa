@@ -6,11 +6,11 @@ class Record:
     """
     Representa a resposta final a ser enviada ao SharePoint.
     """
-    def __init__(self, nmr_po, requester, email_solc, status,
+    def __init__(self, nmr_po, requester, email_requester, status,
                  justification):
         self.__nmr_po = nmr_po      # ID da operação
         self.__requester = requester
-        self.__email_solc = email_solc
+        self.__email_requester = email_requester
                           
         self.__status = status                     
         self.__justification = justification 
@@ -34,12 +34,12 @@ class Record:
         self.__requester = value
 
     @property
-    def email_solc(self):
-        return self.__email_solc
+    def email_requester(self):
+        return self.__email_requester
 
-    @email_solc.setter
-    def email_solc(self, value):
-        self.__email_solc = value
+    @email_requester.setter
+    def email_requester(self, value):
+        self.__email_requester = value
 
     @property
     def status(self):

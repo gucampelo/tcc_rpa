@@ -117,7 +117,7 @@ class SharePointService:
     # -----------------------------
     # Upload de item (registro de resultado)
     # -----------------------------
-    def __upload_item(self, client, operation, record):
+    def  __upload_item(self, client, operation, record):
         """
         Registra um item na lista SharePoint com base nos objetos
         client, operation e record.
@@ -155,8 +155,8 @@ class SharePointService:
             ).send_keys(record.requester)
 
             WebDriverWait(self.__driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="EMAIL_SOLC, vazio, editor de campo. "]'))
-            ).send_keys(record.email_solc)
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="email_requester, vazio, editor de campo. "]'))
+            ).send_keys(record.email_requester)
 
             WebDriverWait(self.__driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@aria-label="VALOR, vazio, editor de campo. "]'))
@@ -240,6 +240,10 @@ class SharePointService:
             time.sleep(10)
 
     def upload_item(self, client, operation, record):
-        """Método público chamado pelo ProcessingService."""
         with self.__lock:
-            self.__upload_item(client, operation, record)
+            try:
+                self.__upload_item(client, operation, record)
+                return True
+            except Exception:
+                return False
+
