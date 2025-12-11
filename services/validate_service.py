@@ -52,7 +52,7 @@ class ValidateService:
             }
 
         # Regra 2: rating mínimo para operação NOVA
-        if cliente_api.get("rating", 0) < 6 and operation.operation_type == "NOVO":
+        if cliente_api.get("rating", 0) < 6 and operation.operation_type == "NOVA":
             return {
                 "valido": False,
                 "motivo": "Cliente inelegível devido ao rating insuficiente."

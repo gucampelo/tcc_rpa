@@ -88,7 +88,7 @@ class ExcelService:
         self.__executar_macro_interna("GerarDecimal")
         plan = self.__doc.Sheets.getByIndex(0)
         taxa = plan.getCellByPosition(5, 3).Value
-        print(f"[EXCEL] Taxa gerada: {taxa}%")
+        print(f"[EXCEL] Custo obtido: {round(taxa*100, 2)}")
         return taxa
     
 

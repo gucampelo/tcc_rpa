@@ -119,7 +119,7 @@ class ProcessingService:
 
             # Criar modelo Record
             record = Record(
-                email_requester=row["email_requester"],
+                email_requester=row["EMAIL_SOLC"],
                 nmr_po=row["NMR_PO"],
                 status="PENDENTE",
                 requester=row["SOLICITANTE"],
@@ -150,7 +150,7 @@ class ProcessingService:
                 print(f"[PROCESSING] ✅ {client.name} - PO {operation.nmr_po} - Taxa {operation.rate_approved * 100}%")
 
             else:
-                print(f"[PROCESSING] ❌ Operação {record.nmr_po}: Rejeitada")
+                print(f"[PROCESSING] ❌ Operação {record.nmr_po}: Rejeitada: {status}")
                 record.status = "RECUSADO"
                 record.justification = status
 

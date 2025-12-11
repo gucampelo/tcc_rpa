@@ -155,7 +155,7 @@ class SharePointService:
             ).send_keys(record.requester)
 
             WebDriverWait(self.__driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="email_requester, vazio, editor de campo. "]'))
+                EC.presence_of_element_located((By.XPATH, '//*[@aria-label="EMAIL_SOLC, vazio, editor de campo. "]'))
             ).send_keys(record.email_requester)
 
             WebDriverWait(self.__driver, 10).until(
